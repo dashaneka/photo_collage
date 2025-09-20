@@ -317,7 +317,8 @@
 
                 html2canvas(collageContainer, {
                     backgroundColor: colorPicker.value,
-                    scale: 3,
+                    // Increased scale from 3 to 4 for a higher resolution output, reducing blurriness.
+                    scale: 4,
                     allowTaint: true,
                     useCORS: true,
                 }).then(canvas => {
