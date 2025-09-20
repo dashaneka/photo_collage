@@ -317,20 +317,14 @@
 
                 html2canvas(collageContainer, {
                     backgroundColor: colorPicker.value,
-                    scale: 4,
+                    scale: 3,
                     allowTaint: true,
                     useCORS: true,
                 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = generateFilename();
                     link.href = canvas.toDataURL('image/png');
-                    
-                    // This is the key change for mobile compatibility.
-                    // We add the link to the document, click it, and then remove it.
-                    document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
-
                 }).catch(err => {
                     console.error('Oops, something went wrong!', err);
                     alert('Could not generate image. Please try again.');
