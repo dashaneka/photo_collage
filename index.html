@@ -97,9 +97,17 @@
                             <label for="radius-slider" class="block text-sm font-medium leading-6 text-slate-700">Corners</label>
                             <input id="radius-slider" type="range" min="0" max="100" value="12" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                         </div>
-                         <div>
+                        <div>
                             <label for="color-picker" class="block text-sm font-medium leading-6 text-slate-700">Background Color</label>
                             <input id="color-picker" type="color" value="#f1f5f9" class="w-full h-10 border-0 rounded-md cursor-pointer">
+                        </div>
+                        <!-- New Image Quality Slider -->
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <label for="scale-slider" class="block text-sm font-medium leading-6 text-slate-700">Image Quality</label>
+                                <span id="scale-value" class="text-sm font-medium text-slate-500">3x</span>
+                            </div>
+                            <input id="scale-slider" type="range" min="1" max="5" value="3" step="0.5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                         </div>
                     </div>
                 </div>
@@ -145,6 +153,9 @@
             const colorPicker = document.getElementById('color-picker');
             const downloadBtn = document.getElementById('download-btn');
             const collageWrapper = document.getElementById('collage-wrapper');
+            // New elements for scale control
+            const scaleSlider = document.getElementById('scale-slider');
+            const scaleValue = document.getElementById('scale-value');
 
             // App state
             let uploadedImages = [];
@@ -315,19 +326,26 @@
                 downloadBtn.disabled = true;
                 downloadBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...`;
 
+                const selectedScale = parseFloat(scaleSlider.value);
+
                 html2canvas(collageContainer, {
                     backgroundColor: colorPicker.value,
-                    scale: 3,
+                    scale: selectedScale,
                     allowTaint: true,
                     useCORS: true,
                 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = generateFilename();
                     link.href = canvas.toDataURL('image/png');
+                    
+                    // This method ensures downloads work on mobile devices
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
+
                 }).catch(err => {
                     console.error('Oops, something went wrong!', err);
-                    alert('Could not generate image. Please try again.');
+                    alert('Could not generate image. It might be too large for your device. Try a lower quality setting.');
                 }).finally(() => {
                     downloadBtn.disabled = false;
                     downloadBtn.innerHTML = btnOriginalText;
@@ -459,6 +477,9 @@
             radiusSlider.addEventListener('input', applyStyles);
             colorPicker.addEventListener('input', applyStyles);
             downloadBtn.addEventListener('click', downloadCollage);
+            scaleSlider.addEventListener('input', () => {
+                scaleValue.textContent = `${scaleSlider.value}x`;
+            });
 
             initLayoutButtons();
             initAspectRatioButtons();
