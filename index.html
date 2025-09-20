@@ -13,34 +13,32 @@
         body {
             font-family: 'inter', sans-serif;
         }
-        /* custom scrollbar for a cleaner look */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        /* Use canvas instead of div for the collage item */
+        /* custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* This is the key to the new implementation */
         .collage-item {
-            display: block; /* Canvases are inline by default */
-            overflow: hidden;
             position: relative;
+            overflow: hidden;
             background-color: #e2e8f0;
-            touch-action: none; 
             cursor: grab;
-            transition: box-shadow 0.2s ease-in-out;
+            touch-action: none;
+        }
+        .collage-item > img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* This makes the image cover the cell initially */
+            pointer-events: none; /* Prevents image from interfering with mouse events */
+            transition: transform 0.1s linear; /* Smooths out transformations */
         }
         .collage-item.is-dragging, .collage-item:active {
             cursor: grabbing;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.6);
-            z-index: 10;
         }
     </style>
 </head>
@@ -58,9 +56,7 @@
                 <!-- upload section -->
                 <div>
                     <label for="image-upload" class="cursor-pointer w-full inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
                         Add Images
                     </label>
                     <input id="image-upload" type="file" class="hidden" multiple accept="image/*">
@@ -101,9 +97,7 @@
                 <!-- download button -->
                 <div class="pt-4 border-t border-slate-200">
                      <button id="download-btn" class="w-full inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                         Download Collage
                     </button>
                 </div>
@@ -115,9 +109,7 @@
              <div id="collage-wrapper" class="w-full max-w-4xl transition-all duration-300">
                 <div id="collage-container" class="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg shadow-inner overflow-hidden">
                     <div id="placeholder" class="text-center text-slate-500 p-8">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         <h3 class="mt-2 text-sm font-medium">No images added</h3>
                         <p class="mt-1 text-sm text-slate-500">Upload some photos to get started!</p>
                     </div>
@@ -128,7 +120,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // DOM elements
+            // DOM Elements
             const imageUpload = document.getElementById('image-upload');
             const collageContainer = document.getElementById('collage-container');
             const placeholder = document.getElementById('placeholder');
@@ -140,9 +132,9 @@
             const downloadBtn = document.getElementById('download-btn');
             const collageWrapper = document.getElementById('collage-wrapper');
 
-            // App state
-            let uploadedImages = []; // Will store Image objects
-            let imageTransforms = []; 
+            // App State
+            let uploadedImageSources = [];
+            let imageTransforms = [];
             let activeLayoutKey = 'grid-2x2';
             let activeAspectRatio = 'aspect-[4/3]';
 
@@ -153,55 +145,56 @@
                 'mosaic-3-top': { name: '1 Top, 2 Bottom', cells: 3, class: 'grid-cols-2 grid-rows-2', spans: ['col-span-2', '', ''], icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h18v8H3V3m0 10h8v8H3v-8m10 0h8v8h-8v-8z"/></svg>` },
                 'mosaic-3-bottom': { name: '2 Top, 1 Bottom', cells: 3, class: 'grid-cols-2 grid-rows-2', spans: ['', '', 'col-span-2'], icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3m10 0h8v8h-8V3m-10 10h18v8H3v-8z"/></svg>` },
                 'grid-2x2': { name: '4 Grid', cells: 4, class: 'grid-cols-2 grid-rows-2', icon: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3v8h8V3H3z M9,9H5V5h4V9z M3,13v8h8v-8H3z M9,19H5v-4h4V19z M13,3v8h8V3H13z M19,9h-4V5h4V9z M13,13v8h8v-8H13z M19,19h-4v-4h4V19z"/></svg>` },
-                'mosaic-1': { name: 'Mosaic 1', cells: 3, class: 'grid-cols-3 grid-rows-2', spans: ['col-span-2 row-span-2', '', ''], icon: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3v18h18V3H3z M13,19H5v-8h8V19z M19,19h-4V5h4V19z M13,9H5V5h8V9z"/></svg>`},
-                'mosaic-2': { name: 'Mosaic 2', cells: 4, class: 'grid-cols-2 grid-rows-2', spans: ['', 'row-span-2', ''], icon: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3v18h18V3H3z M9,19H5v-8h4V19z M19,19h-8v-8h8V19z M19,9h-8V5h8V9z M9,9H5V5h4V9z"/></svg>`},
             };
-             const aspectRatios = {
-                'square': { label: '1:1', class: 'aspect-square' },
+            const aspectRatios = {
                 'standard': { label: '4:3', class: 'aspect-[4/3]' },
+                'square': { label: '1:1', class: 'aspect-square' },
                 'portrait': { label: '3:4', class: 'aspect-[3/4]' },
                 'widescreen': { label: '16:9', class: 'aspect-video' },
                 'story': { label: '9:16', class: 'aspect-[9/16]' },
             };
 
-            const initLayoutButtons = () => {
-                layoutOptionsContainer.innerHTML = '';
-                Object.keys(layouts).forEach((key) => {
+            const initButtons = (container, options, activeKey, callback) => {
+                container.innerHTML = '';
+                Object.keys(options).forEach(key => {
+                    const option = options[key];
                     const button = document.createElement('button');
-                    button.innerHTML = layouts[key].icon;
-                    button.className = `p-2 rounded-lg border-2 transition-colors ${key === activeLayoutKey ? 'bg-indigo-100 border-indigo-500' : 'border-slate-300 hover:border-indigo-400'}`;
-                    button.onclick = () => { activeLayoutKey = key; initLayoutButtons(); renderCollage(); };
-                    layoutOptionsContainer.appendChild(button);
+                    const isActive = (option.class && option.class === activeKey) || key === activeKey;
+                    
+                    button.innerHTML = option.icon || option.label;
+                    button.className = `p-2 rounded-lg border-2 transition-colors ${isActive ? 'bg-indigo-100 border-indigo-500 text-indigo-700 font-semibold' : 'border-slate-300 hover:border-indigo-400'}`;
+                    
+                    button.onclick = () => callback(key);
                 });
             };
 
-            const initAspectRatioButtons = () => {
-                aspectRatioOptionsContainer.innerHTML = '';
-                Object.keys(aspectRatios).forEach(key => {
-                    const button = document.createElement('button');
-                    button.textContent = aspectRatios[key].label;
-                    button.className = `p-2 text-sm rounded-lg border-2 transition-colors ${aspectRatios[key].class === activeAspectRatio ? 'bg-indigo-100 border-indigo-500 text-indigo-700 font-semibold' : 'border-slate-300 hover:border-indigo-400'}`;
-                    button.onclick = () => { activeAspectRatio = aspectRatios[key].class; initAspectRatioButtons(); applyAspectRatio(); };
-                    aspectRatioOptionsContainer.appendChild(button);
-                });
-            };
+            const selectLayout = (key) => { activeLayoutKey = key; initLayoutButtons(); renderCollage(); };
+            const selectAspectRatio = (key) => { activeAspectRatio = aspectRatios[key].class; initAspectRatioButtons(); applyAspectRatio(); };
+            
+            const initLayoutButtons = () => initButtons(layoutOptionsContainer, layouts, activeLayoutKey, selectLayout);
+            const initAspectRatioButtons = () => initButtons(aspectRatioOptionsContainer, aspectRatios, activeAspectRatio, selectAspectRatio);
 
-             const applyAspectRatio = () => {
+            const applyAspectRatio = () => {
                 collageWrapper.className = `w-full max-w-4xl transition-all duration-300 ${activeAspectRatio}`;
             };
 
             const applyStyles = () => {
-                collageContainer.style.gap = `${spacingSlider.value}px`;
-                collageContainer.style.padding = `${spacingSlider.value}px`;
-                collageContainer.style.borderRadius = `${radiusSlider.value}px`;
-                collageContainer.style.backgroundColor = colorPicker.value;
-                collageWrapper.parentElement.style.backgroundColor = colorPicker.value;
-                document.querySelectorAll('.collage-item').forEach(item => item.style.borderRadius = `${radiusSlider.value}px`);
+                const spacing = spacingSlider.value;
+                const radius = radiusSlider.value;
+                const bgColor = colorPicker.value;
+
+                collageContainer.style.gap = `${spacing}px`;
+                collageContainer.style.padding = `${spacing}px`;
+                collageContainer.style.borderRadius = `${radius}px`;
+                collageContainer.style.backgroundColor = bgColor;
+                collageWrapper.parentElement.style.backgroundColor = bgColor;
+
+                document.querySelectorAll('.collage-item').forEach(item => item.style.borderRadius = `${radius}px`);
             };
 
             const renderCollage = () => {
                 collageContainer.innerHTML = '';
-                if (uploadedImages.length === 0) {
+                if (uploadedImageSources.length === 0) {
                     collageContainer.appendChild(placeholder);
                     collageContainer.className = 'w-full h-full flex items-center justify-center bg-slate-100 rounded-lg shadow-inner overflow-hidden';
                     downloadBtn.disabled = true;
@@ -214,93 +207,34 @@
                 const layoutInfo = layouts[activeLayoutKey];
                 collageContainer.className = `w-full h-full grid overflow-hidden transition-all duration-300 ${layoutInfo.class}`;
                 
-                imageTransforms = Array(layoutInfo.cells).fill(null).map(() => ({ zoom: 1, posX: 50, posY: 50 }));
+                imageTransforms = Array(layoutInfo.cells).fill(null).map(() => ({ zoom: 1, posX: 0, posY: 0 }));
 
                 for(let i = 0; i < layoutInfo.cells; i++) {
-                    const canvas = document.createElement('canvas');
-                    canvas.className = 'collage-item';
-                    canvas.dataset.index = i;
+                    const item = document.createElement('div');
+                    item.className = 'collage-item';
+                    item.dataset.index = i;
                     
-                    if(layoutInfo.spans && layoutInfo.spans[i]) {
-                         canvas.classList.add(...layoutInfo.spans[i].split(' '));
-                    }
-                    collageContainer.appendChild(canvas);
+                    if(layoutInfo.spans && layoutInfo.spans[i]) item.classList.add(...layoutInfo.spans[i].split(' '));
+                    
+                    const img = document.createElement('img');
+                    img.src = uploadedImageSources[i % uploadedImageSources.length];
+                    
+                    item.appendChild(img);
+                    collageContainer.appendChild(item);
+                    updateItemTransform(img, imageTransforms[i]);
                 }
-                
-                // Defer drawing until the grid layout is computed by the browser
-                requestAnimationFrame(() => {
-                    document.querySelectorAll('.collage-item').forEach((canvas, i) => {
-                        const image = uploadedImages[i % uploadedImages.length];
-                        drawCanvasImage(canvas, image, imageTransforms[i]);
-                    });
-                });
-
                 applyStyles();
             };
             
-            const drawCanvasImage = (canvas, image, transform) => {
-                const ctx = canvas.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
-                const rect = canvas.getBoundingClientRect();
-
-                // Set canvas internal size to match its display size, adjusted for screen density
-                if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-                    canvas.width = rect.width * dpr;
-                    canvas.height = rect.height * dpr;
-                }
-                
-                // Clear canvas before drawing
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Calculations for source image (what part of the image to show)
-                const imgRatio = image.naturalWidth / image.naturalHeight;
-                const canvasRatio = canvas.width / canvas.height;
-                
-                let sWidth = image.naturalWidth;
-                let sHeight = image.naturalHeight;
-
-                if (imgRatio > canvasRatio) { // Image is wider than canvas
-                    sHeight = image.naturalHeight;
-                    sWidth = sHeight * canvasRatio;
-                } else { // Image is taller or same ratio
-                    sWidth = image.naturalWidth;
-                    sHeight = sWidth / canvasRatio;
-                }
-
-                sWidth /= transform.zoom;
-                sHeight /= transform.zoom;
-
-                const sX = (image.naturalWidth - sWidth) * (transform.posX / 100);
-                const sY = (image.naturalHeight - sHeight) * (transform.posY / 100);
-
-                ctx.drawImage(image, sX, sY, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+            const updateItemTransform = (imgElement, transform) => {
+                imgElement.style.transform = `scale(${transform.zoom}) translate(${transform.posX}px, ${transform.posY}px)`;
             };
 
             const handleImageUpload = (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
-
-                const readers = files.map(file => {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const img = new Image();
-                            img.onload = () => resolve(img);
-                            img.onerror = reject;
-                            img.src = event.target.result;
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                });
-
-                Promise.all(readers).then(images => {
-                    uploadedImages = images;
-                    renderCollage();
-                }).catch(error => {
-                    console.error("Error loading images:", error);
-                    alert("There was an error loading one or more images.");
-                });
+                uploadedImageSources = files.map(file => URL.createObjectURL(file));
+                renderCollage();
             };
 
             const generateFilename = () => `rjcollage${Math.random().toString(36).substring(2, 6)}.png`;
@@ -310,22 +244,11 @@
                 downloadBtn.disabled = true;
                 downloadBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...`;
 
-                // Temporarily increase scale for better quality, then revert
-                const originalScale = window.devicePixelRatio;
-                
                 html2canvas(collageContainer, {
                     backgroundColor: colorPicker.value,
-                    scale: 3, // High scale for high-res output
+                    scale: 3,
                     allowTaint: true,
                     useCORS: true,
-                    onclone: (doc) => {
-                        // This ensures the captured canvases are rendered at high fidelity
-                         const clonedContainer = doc.getElementById('collage-container');
-                         clonedContainer.querySelectorAll('canvas').forEach((canvas, i) => {
-                            const image = uploadedImages[i % uploadedImages.length];
-                            drawCanvasImage(canvas, image, imageTransforms[i]);
-                         });
-                    }
                 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = generateFilename();
@@ -341,7 +264,8 @@
             };
             
             // --- Interaction Logic ---
-            let activeItem = null, isDragging = false, startPos = {}, initialBgPos = {}, initialPinchDistance = 0;
+            let activeItem = null, isDragging = false, startPos = {}, initialTransform = {};
+            let initialPinchDistance = 0;
             const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
             const startPan = (clientX, clientY) => {
@@ -349,24 +273,28 @@
                 activeItem.classList.add('is-dragging');
                 const index = parseInt(activeItem.dataset.index, 10);
                 startPos = { x: clientX, y: clientY };
-                initialBgPos = { x: imageTransforms[index].posX, y: imageTransforms[index].posY };
+                initialTransform = { ...imageTransforms[index] };
             };
 
             const doPan = (clientX, clientY) => {
                 const index = parseInt(activeItem.dataset.index, 10);
                 const transform = imageTransforms[index];
-                if (transform.zoom <= 1) return;
+                const img = activeItem.querySelector('img');
 
                 const dx = clientX - startPos.x;
                 const dy = clientY - startPos.y;
+
+                transform.posX = initialTransform.posX + dx;
+                transform.posY = initialTransform.posY + dy;
+                
+                // Clamp boundaries
                 const rect = activeItem.getBoundingClientRect();
-                const sensitivityX = 100 / (rect.width * (transform.zoom - 1));
-                const sensitivityY = 100 / (rect.height * (transform.zoom - 1));
-                
-                transform.posX = clamp(initialBgPos.x - dx * sensitivityX, 0, 100);
-                transform.posY = clamp(initialBgPos.y - dy * sensitivityY, 0, 100);
-                
-                drawCanvasImage(activeItem, uploadedImages[index % uploadedImages.length], transform);
+                const maxPanX = (rect.width * transform.zoom - rect.width) / 2;
+                const maxPanY = (rect.height * transform.zoom - rect.height) / 2;
+                transform.posX = clamp(transform.posX, -maxPanX, maxPanX);
+                transform.posY = clamp(transform.posY, -maxPanY, maxPanY);
+
+                updateItemTransform(img, transform);
             };
 
             const endPan = () => {
@@ -374,14 +302,13 @@
                 isDragging = false; activeItem = null;
             };
 
-            collageContainer.addEventListener('mousedown', e => {
-                if (e.target.classList.contains('collage-item')) { activeItem = e.target; startPan(e.clientX, e.clientY); }
-            });
+            collageContainer.addEventListener('mousedown', e => { if (e.target.classList.contains('collage-item')) { activeItem = e.target; startPan(e.clientX, e.clientY); } });
+            document.addEventListener('mousemove', e => { if (isDragging) { e.preventDefault(); doPan(e.clientX, e.clientY); }});
+            document.addEventListener('mouseup', endPan);
 
             collageContainer.addEventListener('touchstart', e => {
                 if (e.target.classList.contains('collage-item')) {
                     activeItem = e.target;
-                    const index = parseInt(activeItem.dataset.index, 10);
                     if (e.touches.length === 1) {
                         startPan(e.touches[0].clientX, e.touches[0].clientY);
                     } else if (e.touches.length === 2) {
@@ -389,27 +316,28 @@
                         const dx = e.touches[0].clientX - e.touches[1].clientX;
                         const dy = e.touches[0].clientY - e.touches[1].clientY;
                         initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+                        const index = parseInt(activeItem.dataset.index, 10);
+                        initialTransform = { ...imageTransforms[index] };
                     }
                 }
             });
-
-            document.addEventListener('mousemove', e => { if (isDragging) { e.preventDefault(); doPan(e.clientX, e.clientY); }});
-            document.addEventListener('mouseup', endPan);
             document.addEventListener('touchend', () => { endPan(); initialPinchDistance = 0; });
 
             document.addEventListener('touchmove', e => {
                 if (!activeItem) return; e.preventDefault();
                 if (e.touches.length === 1 && isDragging) {
                     doPan(e.touches[0].clientX, e.touches[0].clientY);
-                } else if (e.touches.length === 2 && initialPinchDistance > 0) {
+                } else if (e.touches.length === 2) {
                     const index = parseInt(activeItem.dataset.index, 10);
                     const transform = imageTransforms[index];
+                    const img = activeItem.querySelector('img');
                     const dx = e.touches[0].clientX - e.touches[1].clientX;
                     const dy = e.touches[0].clientY - e.touches[1].clientY;
                     const newDist = Math.sqrt(dx * dx + dy * dy);
-                    transform.zoom = clamp(transform.zoom * (newDist / initialPinchDistance), 1, 5);
-                    initialPinchDistance = newDist;
-                    drawCanvasImage(activeItem, uploadedImages[index % uploadedImages.length], transform);
+                    const zoomFactor = newDist / initialPinchDistance;
+                    
+                    transform.zoom = clamp(initialTransform.zoom * zoomFactor, 1, 5);
+                    updateItemTransform(img, transform);
                 }
             });
 
@@ -419,21 +347,24 @@
                     const item = e.target;
                     const index = parseInt(item.dataset.index, 10);
                     const transform = imageTransforms[index];
-                    transform.zoom = clamp(transform.zoom - e.deltaY * 0.001, 1, 5);
-                    drawCanvasImage(item, uploadedImages[index % uploadedImages.length], transform);
+                    const img = item.querySelector('img');
+                    
+                    const rect = item.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    const zoomFactor = e.deltaY * -0.001;
+                    const newZoom = clamp(transform.zoom + zoomFactor * transform.zoom, 1, 5);
+
+                    const oldZoom = transform.zoom;
+                    
+                    transform.posX -= (mouseX - rect.width / 2) * (newZoom / oldZoom - 1);
+                    transform.posY -= (mouseY - rect.height / 2) * (newZoom / oldZoom - 1);
+                    transform.zoom = newZoom;
+
+                    updateItemTransform(img, transform);
                 }
             });
-            
-            // Redraw canvases on resize to maintain quality
-            const resizeObserver = new ResizeObserver(() => {
-                if(uploadedImages.length > 0) {
-                    document.querySelectorAll('.collage-item').forEach((canvas, i) => {
-                        const image = uploadedImages[i % uploadedImages.length];
-                        drawCanvasImage(canvas, image, imageTransforms[i]);
-                    });
-                }
-            });
-            resizeObserver.observe(collageContainer);
 
             // --- Initial Setup ---
             imageUpload.addEventListener('change', handleImageUpload);
