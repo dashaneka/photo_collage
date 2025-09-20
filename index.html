@@ -317,7 +317,6 @@
 
                 html2canvas(collageContainer, {
                     backgroundColor: colorPicker.value,
-                    // Increased scale from 3 to 4 for a higher resolution output, reducing blurriness.
                     scale: 4,
                     allowTaint: true,
                     useCORS: true,
@@ -325,7 +324,13 @@
                     const link = document.createElement('a');
                     link.download = generateFilename();
                     link.href = canvas.toDataURL('image/png');
+                    
+                    // This is the key change for mobile compatibility.
+                    // We add the link to the document, click it, and then remove it.
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
+
                 }).catch(err => {
                     console.error('Oops, something went wrong!', err);
                     alert('Could not generate image. Please try again.');
